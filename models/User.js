@@ -1,37 +1,103 @@
-// models/User.js
 module.exports = (sequelize, DataTypes) => {
-    const User = sequelize.define('User', {
-      email:{
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-        validate: {
-          isEmail: true,
-        },
+  const User = sequelize.define('User', {
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: true, 
       },
-    
-      username: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
+    },
+
+    username: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+
+    firstName: {
+      type: DataTypes.STRING,
+    },
+
+    lastName: {
+      type: DataTypes.STRING,
+    },
+
+    age: {
+      type: DataTypes.INTEGER,
+    },
+
+    birthday: {
+      type: DataTypes.DATEONLY,
+    },
+
+    bio: {
+      type: DataTypes.TEXT,
+    },
+
+    gender: {
+      type: DataTypes.ENUM('male', 'female', 'other'),
+    },
+
+    telegram: {
+      type: DataTypes.STRING,
+      validate: {
+        isUrl: true,
       },
-      password: {
-        type: DataTypes.STRING,
-        allowNull: false,
+    },
+
+    discord: {
+      type: DataTypes.STRING,
+      validate: {
+        isUrl: true,
       },
-      firstName: {
-        type: DataTypes.STRING,
+    },
+
+    whatsapp: {
+      type: DataTypes.STRING,
+      validate: {
+        isUrl: true,
       },
-      lastName: {
-        type: DataTypes.STRING,
-      },
-        age: {
-          type: DataTypes.INTEGER,
-        } 
-      }, {
-        tableName: 'user', 
-      });
-  
-    return User;
-  };
-  
+    },
+
+    spPoints: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+
+    profileCompleted: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+
+    isVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false, // If the user is verified or not
+    },
+
+    verificationCode: {
+      type: DataTypes.STRING,
+      allowNull: true, // Can be null after verification
+    },
+
+    resetCode: {
+      type: DataTypes.STRING,
+      allowNull: true, // Can be null after password reset
+    },
+
+    provider: {
+      type: DataTypes.STRING,
+      defaultValue: "local", // Default to local authentication
+    },
+
+  }, {
+    tableName: 'users',
+  });
+
+  return User;
+};
