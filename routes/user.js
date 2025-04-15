@@ -1,5 +1,5 @@
 const express = require('express');
-const { User, Skill, UserSkill, UserActivity } = require('../models'); // Include UserActivity
+const { User, Skill, UserSkill, UserActivity } = require('../models'); 
 const authenticateJWT = require('../middleware/auth');
 const router = express.Router();
 
@@ -9,11 +9,10 @@ const calculateSP = async (userId, activity) => {
 
   // Example Activity Check:
   if (activity.type === 'profile-completion') {
-    // Profile Completion = 5 SP
-    spEarned = 5;
+    spEarned = 5;  // Profile completion gives 5 SP
   } else if (activity.type === 'teaching') {
     const hours = activity.value;
-    if (hours === 0.25) {  // 15 minutes teaching
+    if (hours === 0.25) { // 15 minutes of teaching
       spEarned = 3;
     } else if (hours === 4) { // 4 hours of teaching
       spEarned = 12;
@@ -39,17 +38,21 @@ const calculateSP = async (userId, activity) => {
   }
 
   // Save the activity and update SP
-  await UserActivity.create({
-    userId,
-    activityType: activity.type,
-    value: activity.value,
-    spEarned,
-  });
+  try {
+    await UserActivity.create({
+      userId,
+      activityType: activity.type,
+      value: activity.value,
+      spEarned,
+    });
+  } catch (error) {
+    console.error("Error saving activity:", error);
+  }
 
   // Update User SP Points
   const user = await User.findByPk(userId);
   if (user) {
-    user.spPoints += spEarned;
+    user.SP += spEarned; // Update the 'SP' field
     await user.save();
   }
 
@@ -59,9 +62,9 @@ const calculateSP = async (userId, activity) => {
 // POST /api/user/info - Save additional user information
 router.post('/info', authenticateJWT, async (req, res) => {
   const {
-    username,
-    firstName,
-    lastName,
+    Users_name,
+    first_name,
+    last_name,
     birthday,
     bio,
     gender,
@@ -74,43 +77,40 @@ router.post('/info', authenticateJWT, async (req, res) => {
     const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Check if any of the fields are different
-    if (
-      user.username === username &&
-      user.firstName === firstName &&
-      user.lastName === lastName &&
-      user.birthday === birthday &&
-      user.bio === bio &&
-      user.gender === gender &&
-      user.telegram === telegram &&
-      user.discord === discord &&
-      user.whatsapp === whatsapp
-    ) {
+    const updatedFields = {};
+
+    // Check if fields have changed and prepare update fields
+    if (user.Users_name !== Users_name) updatedFields.Users_name = Users_name;
+    if (user.first_name !== first_name) updatedFields.first_name = first_name;
+    if (user.last_name !== last_name) updatedFields.last_name = last_name;
+    if (user.birthday !== birthday) updatedFields.birthday = birthday;
+    if (user.bio !== bio) updatedFields.bio = bio;
+    if (user.gender !== gender) updatedFields.gender = gender;
+    if (user.telegram !== telegram) updatedFields.telegram = telegram;
+    if (user.discord !== discord) updatedFields.discord = discord;
+    if (user.whatsapp !== whatsapp) updatedFields.whatsapp = whatsapp;
+
+    if (Object.keys(updatedFields).length > 0) {
+      // Apply the changes to the user's profile
+      await user.update(updatedFields);
+
+      // Calculate and add SP for profile completion if fields have been updated
+      const spEarned = await calculateSP(user.id, { type: 'profile-completion', value: 1 });
+
+      return res.status(200).json({
+        message: `${Object.keys(updatedFields).length} fields updated successfully. ${spEarned} SP earned for profile completion.`,
+        user,
+      });
+    } else {
       return res.status(200).json({ message: 'No changes detected for user info' });
     }
-
-    // Update the user's info if different
-    user.username = username;
-    user.firstName = firstName;
-    user.lastName = lastName;
-    user.birthday = birthday;
-    user.bio = bio;
-    user.gender = gender;
-    user.telegram = telegram;
-    user.discord = discord;
-    user.whatsapp = whatsapp;
-
-    await user.save();
-
-    // Calculate and add SP for profile completion
-    const spEarned = await calculateSP(user.id, { type: 'profile-completion', value: 1 });
-
-    return res.status(200).json({ message: `User info updated successfully. ${spEarned} SP earned for profile completion.`, user });
   } catch (error) {
     console.error("Server error:", error);
     return res.status(500).json({ message: 'Server error', error });
   }
 });
+
+module.exports = router;
 
 // POST /api/user/skills - Add or update skills
 router.post('/skills', authenticateJWT, async (req, res) => {
@@ -161,4 +161,3 @@ router.post('/skills', authenticateJWT, async (req, res) => {
 });
 
 module.exports = router;
-
