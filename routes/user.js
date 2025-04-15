@@ -1,7 +1,60 @@
 const express = require('express');
-const { User, Skill, UserSkill } = require('../models');
+const { User, Skill, UserSkill, UserActivity } = require('../models'); // Include UserActivity
 const authenticateJWT = require('../middleware/auth');
 const router = express.Router();
+
+// Helper function to calculate and add SP based on activity
+const calculateSP = async (userId, activity) => {
+  let spEarned = 0;
+
+  // Example Activity Check:
+  if (activity.type === 'profile-completion') {
+    // Profile Completion = 5 SP
+    spEarned = 5;
+  } else if (activity.type === 'teaching') {
+    const hours = activity.value;
+    if (hours === 0.25) {  // 15 minutes teaching
+      spEarned = 3;
+    } else if (hours === 4) { // 4 hours of teaching
+      spEarned = 12;
+    } else if (hours === 12) { // 12 hours of teaching
+      spEarned = 20;
+    } else if (hours >= 4) { // General rate per hour
+      spEarned = 7 * hours; // 7 SP per hour
+    }
+  } else if (activity.type === 'applications') {
+    const applications = activity.value;
+    if (applications === 5) {
+      spEarned = 10;
+    } else if (applications === 30) {
+      spEarned = 25;
+    }
+  } else if (activity.type === 'skills') {
+    const skills = activity.value;
+    if (skills === 3) { // Teaching or Learning 3 different skills
+      spEarned = 12;
+    } else if (skills === 5) { // Learning 5 hours in the same skill
+      spEarned = 15;
+    }
+  }
+
+  // Save the activity and update SP
+  await UserActivity.create({
+    userId,
+    activityType: activity.type,
+    value: activity.value,
+    spEarned,
+  });
+
+  // Update User SP Points
+  const user = await User.findByPk(userId);
+  if (user) {
+    user.spPoints += spEarned;
+    await user.save();
+  }
+
+  return spEarned;
+};
 
 // POST /api/user/info - Save additional user information
 router.post('/info', authenticateJWT, async (req, res) => {
@@ -49,7 +102,10 @@ router.post('/info', authenticateJWT, async (req, res) => {
 
     await user.save();
 
-    return res.status(200).json({ message: 'User info updated successfully', user });
+    // Calculate and add SP for profile completion
+    const spEarned = await calculateSP(user.id, { type: 'profile-completion', value: 1 });
+
+    return res.status(200).json({ message: `User info updated successfully. ${spEarned} SP earned for profile completion.`, user });
   } catch (error) {
     console.error("Server error:", error);
     return res.status(500).json({ message: 'Server error', error });
@@ -84,6 +140,13 @@ router.post('/skills', authenticateJWT, async (req, res) => {
         await UserSkill.findOrCreate({
           where: { userId: user.id, skillId: skill.id, type }
         });
+      }
+
+      // Calculate SP based on skills added
+      if (skills.length === 3) {
+        await calculateSP(user.id, { type: 'skills', value: 3 });
+      } else if (skills.length === 5) {
+        await calculateSP(user.id, { type: 'skills', value: 5 });
       }
     };
 
