@@ -1,5 +1,11 @@
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define('User', {
+    ID_Users: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      primaryKey: true,  
+      autoIncrement: true,
+    },
     email: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -8,95 +14,82 @@ module.exports = (sequelize, DataTypes) => {
         isEmail: true, 
       },
     },
-
     username: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
     },
-
     password: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-
     firstName: {
       type: DataTypes.STRING,
     },
-
     lastName: {
       type: DataTypes.STRING,
     },
-
     age: {
       type: DataTypes.INTEGER,
     },
-
     birthday: {
       type: DataTypes.DATEONLY,
     },
-
     bio: {
       type: DataTypes.TEXT,
     },
-
     gender: {
       type: DataTypes.ENUM('male', 'female', 'other'),
     },
-
     telegram: {
       type: DataTypes.STRING,
       validate: {
         isUrl: true,
       },
     },
-
     discord: {
       type: DataTypes.STRING,
       validate: {
-        isUrl: true,
+        isUrl: true, 
       },
     },
-
     whatsapp: {
       type: DataTypes.STRING,
       validate: {
         isUrl: true,
       },
     },
-
     spPoints: {
       type: DataTypes.INTEGER,
-      defaultValue: 0,
+      defaultValue: 0, 
     },
-
     profileCompleted: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-
     isVerified: {
       type: DataTypes.BOOLEAN,
-      defaultValue: false, // If the user is verified or not
-    },
-
+      defaultValue: false, 
+     },
     verificationCode: {
       type: DataTypes.STRING,
-      allowNull: true, // Can be null after verification
-    },
-
+      allowNull: true, 
+     },
     resetCode: {
       type: DataTypes.STRING,
-      allowNull: true, // Can be null after password reset
+      allowNull: true, 
     },
-
     provider: {
       type: DataTypes.STRING,
-      defaultValue: "local", // Default to local authentication
+      defaultValue: 'local',
     },
-
+    authProviderId: {
+      type: DataTypes.STRING,
+      allowNull: true, 
+    }
   }, {
-    tableName: 'users',
+    tableName: 'users', 
+    timestamps: true, 
   });
 
   return User;
