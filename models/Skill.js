@@ -3,11 +3,20 @@ module.exports = (sequelize, DataTypes) => {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
-    } 
+      unique: true
+    }
   }, {
-    tableName: 'skills', 
-  });
+      tableName: 'skill',
+    });
+
+  Skill.associate = (models) => {
+    Skill.belongsToMany(models.User, {
+      through: models.UserSkill,
+      foreignKey: 'skillId',
+      otherKey: 'userId'
+    })
+  };
 
   return Skill;
 };
+
