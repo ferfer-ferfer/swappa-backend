@@ -6,6 +6,11 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,  
       autoIncrement: true,
     },
+    Users_name: {  
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
     email: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -14,19 +19,14 @@ module.exports = (sequelize, DataTypes) => {
         isEmail: true, 
       },
     },
-    username: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-    },
     password: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    firstName: {
+    first_name: {  
       type: DataTypes.STRING,
     },
-    lastName: {
+    last_name: {  
       type: DataTypes.STRING,
     },
     age: {
@@ -59,37 +59,55 @@ module.exports = (sequelize, DataTypes) => {
         isUrl: true,
       },
     },
-    spPoints: {
+    SP: {  
       type: DataTypes.INTEGER,
       defaultValue: 0, 
     },
-    profileCompleted: {
+    status: { 
+      type: DataTypes.STRING,
+    },
+    total_time_teaching_h: {  
+      type: DataTypes.FLOAT,
+      defaultValue: 0,
+    },
+    total_time_learning_h: { 
+      type: DataTypes.FLOAT,
+      defaultValue: 0,
+    },
+    rate: {  
+      type: DataTypes.FLOAT,
+      defaultValue: 0,
+    },
+    nbr_rate: { 
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    sec_email: {  
+      type: DataTypes.STRING,
+    },
+    is_admin: {  
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-    isVerified: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false, 
-     },
-    verificationCode: {
-      type: DataTypes.STRING,
-      allowNull: true, 
-     },
-    resetCode: {
-      type: DataTypes.STRING,
-      allowNull: true, 
+    created_at: {  
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
     },
-    provider: {
+    updated_at: {  
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    auth_provider: {  
       type: DataTypes.STRING,
       defaultValue: 'local',
     },
-    authProviderId: {
+    provider_id: {  
       type: DataTypes.STRING,
       allowNull: true, 
     }
   }, {
-    tableName: 'users', 
-    timestamps: true, 
+    tableName: 'users',  
+    timestamps: false,  
   });
 
   return User;
