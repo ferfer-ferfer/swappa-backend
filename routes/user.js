@@ -2,62 +2,9 @@ const express = require('express');
 const { User, Skill, UserSkill, UserActivity } = require('../models'); 
 const authenticateJWT = require('../middleware/auth');
 const router = express.Router();
+const calculateSP = require('../services/calculateSP'); 
 
-// Helper function to calculate and add SP based on activity
-const calculateSP = async (userId, activity) => {
-  let spEarned = 0;
 
-  // Example Activity Check:
-  if (activity.type === 'profile-completion') {
-    spEarned = 5;  // Profile completion gives 5 SP
-  } else if (activity.type === 'teaching') {
-    const hours = activity.value;
-    if (hours === 0.25) { // 15 minutes of teaching
-      spEarned = 3;
-    } else if (hours === 4) { // 4 hours of teaching
-      spEarned = 12;
-    } else if (hours === 12) { // 12 hours of teaching
-      spEarned = 20;
-    } else if (hours >= 4) { // General rate per hour
-      spEarned = 7 * hours; // 7 SP per hour
-    }
-  } else if (activity.type === 'applications') {
-    const applications = activity.value;
-    if (applications === 5) {
-      spEarned = 10;
-    } else if (applications === 30) {
-      spEarned = 25;
-    }
-  } else if (activity.type === 'skills') {
-    const skills = activity.value;
-    if (skills === 3) { // Teaching or Learning 3 different skills
-      spEarned = 12;
-    } else if (skills === 5) { // Learning 5 hours in the same skill
-      spEarned = 15;
-    }
-  }
-
-  // Save the activity and update SP
-  try {
-    await UserActivity.create({
-      userId,
-      activityType: activity.type,
-      value: activity.value,
-      spEarned,
-    });
-  } catch (error) {
-    console.error("Error saving activity:", error);
-  }
-
-  // Update User SP Points
-  const user = await User.findByPk(userId);
-  if (user) {
-    user.SP += spEarned; // Update the 'SP' field
-    await user.save();
-  }
-
-  return spEarned;
-};
 
 // POST /api/user/info - Save additional user information
 router.post('/info', authenticateJWT, async (req, res) => {
