@@ -29,9 +29,6 @@ module.exports = (sequelize, DataTypes) => {
     last_name: {  
       type: DataTypes.STRING,
     },
-    age: {
-      type: DataTypes.INTEGER,
-    },
     birthday: {
       type: DataTypes.DATEONLY,
     },
