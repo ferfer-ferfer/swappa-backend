@@ -1,56 +1,70 @@
-const User = require('../models/User');
-const UserActivity = require('../models/UserActivity'); 
+const { User, UserActivity } = require('../models'); // adjust path as needed
 
 const calculateSP = async (userId, activity) => {
   let spEarned = 0;
+  const hours = activity.value;
 
-  // Example Activity Check:
   if (activity.type === 'profile-completion') {
-    spEarned = 5;  // Profile completion gives 5 SP
+    spEarned = 5;
+
   } else if (activity.type === 'teaching') {
-    const hours = activity.value;
-    if (hours === 0.25) { // 15 minutes of teaching
-      spEarned = 3;
-    } else if (hours === 4) { // 4 hours of teaching
-      spEarned = 12;
-    } else if (hours === 12) { // 12 hours of teaching
-      spEarned = 20;
-    } else if (hours >= 4) { // General rate per hour
-      spEarned = 7 * hours; // 7 SP per hour
+    if (hours === 0.25) {
+      spEarned = 1; // 15 minutes
+    } else if (hours === 4) {
+      spEarned = 4; // 4 hours bonus
+    } else if (hours === 12) {
+      spEarned = 9; // 12 hours bonus
+    } else if (hours >= 4 && activity.timeFrame === 'day') {
+      spEarned = 10; // Teaching 4h in one day
+    } else if (hours >= 15 && activity.timeFrame === 'week') {
+      spEarned = 15; // Teaching 15h in one week
     }
+
+    // General rate always applies
+    spEarned += 7 * hours;
+
+  } else if (activity.type === 'learning') {
+    spEarned = 7 * hours; // General rate for learning
+
   } else if (activity.type === 'applications') {
-    const applications = activity.value;
-    if (applications === 5) {
-      spEarned = 10;
-    } else if (applications === 30) {
-      spEarned = 25;
+    if (activity.value >= 5) {
+      spEarned = 3; // Accepting 5 requests
     }
+
   } else if (activity.type === 'skills') {
     const skills = activity.value;
-    if (skills === 3) { // Teaching or Learning 3 different skills
-      spEarned = 12;
-    } else if (skills === 5) { // Learning 5 hours in the same skill
-      spEarned = 15;
+    if (skills >= 3) {
+      spEarned = 6; // Teaching 3 different skills
     }
   }
 
-  // Save the activity and update SP
   try {
+    // Save the activity
     await UserActivity.create({
       userId,
       activityType: activity.type,
       value: activity.value,
       spEarned,
     });
-  } catch (error) {
-    console.error("Error saving activity:", error);
-  }
 
-  // Update User SP Points
-  const user = await User.findByPk(userId);
-  if (user) {
-    user.SP += spEarned; // Update the 'SP' field
-    await user.save();
+    // Fetch and update user stats
+    const user = await User.findByPk(userId);
+
+    if (user) {
+      user.SP += spEarned;
+
+      // Update time counters
+      if (activity.type === 'teaching') {
+        user.total_time_teaching_h += hours;
+      } 
+      else if (activity.type === 'learning') {
+        user.total_time_learning_h += hours;
+      }
+
+      await user.save();
+    }
+  } catch (error) {
+    console.error("Error in SP calculation:", error);
   }
 
   return spEarned;
