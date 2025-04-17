@@ -4,23 +4,22 @@ const authenticateJWT = require('../middleware/auth');
 const calculateSP = require('../services/calculateSP');
 const router = express.Router();
 
+
 // POST /api/user/info
 router.post('/info', authenticateJWT, async (req, res) => {
-  const {
-    Users_name,
-    first_name,
-    last_name,
-    birthday,
-    bio,
-    gender,
-    telegram,
-    discord,
-    whatsapp,
-  } = req.body;
+  const { Users_name, first_name, last_name, birthday, bio, gender, telegram, discord, whatsapp } = req.body;
 
   try {
-    const user = await User.findByPk(req.user.ID_Users);
+    const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Check if the new username is unique
+    if (Users_name && Users_name !== user.Users_name) {
+      const existingUser = await User.findOne({ where: { Users_name } });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Username already taken, please choose a different one.' });
+      }
+    }
 
     const updatedFields = {};
 
@@ -37,10 +36,8 @@ router.post('/info', authenticateJWT, async (req, res) => {
     if (Object.keys(updatedFields).length > 0) {
       await user.update(updatedFields);
 
-      const spEarned = await calculateSP(user.ID_Users, {
-        type: 'profile-completion',
-        value: 1,
-      });
+      // Calculate SP for profile completion
+      const spEarned = await calculateSP(user.ID_Users, { type: 'profile-completion', value: 1 });
 
       return res.status(200).json({
         message: `${Object.keys(updatedFields).length} fields updated. ${spEarned} SP earned.`,
@@ -55,6 +52,8 @@ router.post('/info', authenticateJWT, async (req, res) => {
   }
 });
 
+
+
 // POST /api/user/skills
 router.post('/skills', authenticateJWT, async (req, res) => {
   const { learnSkills = [], teachSkills = [] } = req.body;
@@ -64,30 +63,29 @@ router.post('/skills', authenticateJWT, async (req, res) => {
   }
 
   try {
-    const user = await User.findByPk(req.user.ID_Users);
+    const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const addSkills = async (skills, type) => {
       let newSkills = 0;
 
       for (const skillName of skills) {
-        const [skill] = await Skill.findOrCreate({ where: { name: skillName } });
+        const [skill] = await Skill.findOrCreate({ where: { skills_name: skillName } });
 
         const exists = await UserSkill.findOne({
-          where: { userId: user.ID_Users, skillId: skill.id, type },
+          where: { userId: user.ID_Users, skillId: skill.ID_skill, type },
         });
 
         if (!exists) {
           await UserSkill.create({
             userId: user.ID_Users,
-            skillId: skill.id,
+            skillId: skill.ID_skill,
             type,
           });
           newSkills++;
         }
       }
 
-      // SP condition based on how many new skills added
       if (newSkills >= 3) {
         await calculateSP(user.ID_Users, { type: 'skills', value: 3 });
       }
@@ -102,5 +100,6 @@ router.post('/skills', authenticateJWT, async (req, res) => {
     return res.status(500).json({ message: 'Server error', error });
   }
 });
+
 
 module.exports = router;
