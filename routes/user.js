@@ -1,12 +1,10 @@
 const express = require('express');
-const { User, Skill, UserSkill, UserActivity } = require('../models'); 
+const { User, Skill, UserSkill} = require('../models');
 const authenticateJWT = require('../middleware/auth');
+const calculateSP = require('../services/calculateSP');
 const router = express.Router();
-const calculateSP = require('../services/calculateSP'); 
 
-
-
-// POST /api/user/info - Save additional user information
+// POST /api/user/info
 router.post('/info', authenticateJWT, async (req, res) => {
   const {
     Users_name,
@@ -17,16 +15,15 @@ router.post('/info', authenticateJWT, async (req, res) => {
     gender,
     telegram,
     discord,
-    whatsapp
+    whatsapp,
   } = req.body;
 
   try {
-    const user = await User.findByPk(req.user.id);
+    const user = await User.findByPk(req.user.ID_Users);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const updatedFields = {};
 
-    // Check if fields have changed and prepare update fields
     if (user.Users_name !== Users_name) updatedFields.Users_name = Users_name;
     if (user.first_name !== first_name) updatedFields.first_name = first_name;
     if (user.last_name !== last_name) updatedFields.last_name = last_name;
@@ -38,71 +35,70 @@ router.post('/info', authenticateJWT, async (req, res) => {
     if (user.whatsapp !== whatsapp) updatedFields.whatsapp = whatsapp;
 
     if (Object.keys(updatedFields).length > 0) {
-      // Apply the changes to the user's profile
       await user.update(updatedFields);
 
-      // Calculate and add SP for profile completion if fields have been updated
-      const spEarned = await calculateSP(user.id, { type: 'profile-completion', value: 1 });
+      const spEarned = await calculateSP(user.ID_Users, {
+        type: 'profile-completion',
+        value: 1,
+      });
 
       return res.status(200).json({
-        message: `${Object.keys(updatedFields).length} fields updated successfully. ${spEarned} SP earned for profile completion.`,
+        message: `${Object.keys(updatedFields).length} fields updated. ${spEarned} SP earned.`,
         user,
       });
     } else {
-      return res.status(200).json({ message: 'No changes detected for user info' });
+      return res.status(200).json({ message: 'No changes detected.' });
     }
   } catch (error) {
-    console.error("Server error:", error);
+    console.error('Error in /info:', error);
     return res.status(500).json({ message: 'Server error', error });
   }
 });
 
-module.exports = router;
-
-// POST /api/user/skills - Add or update skills
+// POST /api/user/skills
 router.post('/skills', authenticateJWT, async (req, res) => {
-  const { learnSkills, teachSkills } = req.body; // Two arrays
+  const { learnSkills = [], teachSkills = [] } = req.body;
 
-  if ((!learnSkills || learnSkills.length === 0) && (!teachSkills || teachSkills.length === 0)) {
-    return res.status(400).json({ message: 'At least one learn or teach skill is required' });
+  if (learnSkills.length === 0 && teachSkills.length === 0) {
+    return res.status(400).json({ message: 'At least one skill is required.' });
   }
 
   try {
-    const user = await User.findByPk(req.user.id);
+    const user = await User.findByPk(req.user.ID_Users);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const addSkills = async (skills, type) => {
+      let newSkills = 0;
+
       for (const skillName of skills) {
         const [skill] = await Skill.findOrCreate({ where: { name: skillName } });
 
-        // Check if the skill already exists for the user
-        const existingSkill = await UserSkill.findOne({
-          where: { userId: user.id, skillId: skill.id, type }
+        const exists = await UserSkill.findOne({
+          where: { userId: user.ID_Users, skillId: skill.id, type },
         });
-        if (existingSkill) {
-          console.log(`User already has the ${type} skill: ${skillName}`);
-          continue; // Skip adding the skill if it's already associated
-        }
 
-        await UserSkill.findOrCreate({
-          where: { userId: user.id, skillId: skill.id, type }
-        });
+        if (!exists) {
+          await UserSkill.create({
+            userId: user.ID_Users,
+            skillId: skill.id,
+            type,
+          });
+          newSkills++;
+        }
       }
 
-      // Calculate SP based on skills added
-      if (skills.length === 3) {
-        await calculateSP(user.id, { type: 'skills', value: 3 });
-      } else if (skills.length === 5) {
-        await calculateSP(user.id, { type: 'skills', value: 5 });
+      // SP condition based on how many new skills added
+      if (newSkills >= 3) {
+        await calculateSP(user.ID_Users, { type: 'skills', value: 3 });
       }
     };
 
-    if (learnSkills?.length) await addSkills(learnSkills, 'learn');
-    if (teachSkills?.length) await addSkills(teachSkills, 'teach');
+    if (learnSkills.length) await addSkills(learnSkills, 'learn');
+    if (teachSkills.length) await addSkills(teachSkills, 'teach');
 
-    return res.status(200).json({ message: 'Skills updated successfully' });
+    return res.status(200).json({ message: 'Skills updated successfully.' });
   } catch (error) {
-    console.error("Server error:", error);
+    console.error('Error in /skills:', error);
     return res.status(500).json({ message: 'Server error', error });
   }
 });
