@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const {  Class, User,  Request } = require('../models');
@@ -17,7 +16,12 @@ router.post('/start', authenticateJWT, async (req, res) => {
 
     // Check if class already exists for this request
     let session = await Class.findOne({ where: { request_id } });
-
+ 
+ 
+    if (!session && role === 'student') {
+      return res.status(400).json({ message: 'Class not found. Wait for teacher to start.' });
+    }
+    
     // If not, create the class session (sender = student, receiver = teacher)
     if (!session) {
       session = await Class.create({
@@ -124,3 +128,4 @@ router.post('/stop', authenticateJWT, async (req, res) => {
 });
 
 module.exports = router;
+
