@@ -20,10 +20,15 @@ const sequelize = new Sequelize(
 // Import models
 const User = require('./User')(sequelize, DataTypes);
 const Skill = require('./Skill')(sequelize, DataTypes);
+const UserSkill = require('./UserSkill')(sequelize, DataTypes);
+const UserActivity = require('./UserActivity')(sequelize, DataTypes);
+
 
 // User <-> Skill many-to-many
 User.belongsToMany(Skill, { through: 'UserSkills' });
 Skill.belongsToMany(User, { through: 'UserSkills' });
+
+
 
 
 module.exports = {
@@ -32,4 +37,6 @@ module.exports = {
   DataTypes,
   User,
   Skill,
+  UserSkill,
+  UserActivity,
 };
